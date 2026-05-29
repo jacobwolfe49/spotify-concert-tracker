@@ -1,4 +1,4 @@
-```python
+
 import streamlit as st
 import pandas as pd
 import requests
@@ -447,4 +447,3 @@ st.sidebar.dataframe(
     artist_df.head(25),
     use_container_width=True
 )
-```
