@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 import pandas as pd
 import requests
@@ -39,6 +40,10 @@ uploaded_file = st.file_uploader(
 if uploaded_file is None:
     st.info("Upload your Spotify export to begin")
     st.stop()
+
+# =====================================================
+# LOAD CSV
+# =====================================================
 
 songs_df = pd.read_csv(uploaded_file)
 
@@ -102,16 +107,16 @@ st.sidebar.header("Dashboard Settings")
 
 TOP_N = st.sidebar.slider(
     "Artists To Track",
-    25,
-    300,
-    100
+    min_value=25,
+    max_value=300,
+    value=100
 )
 
 MAX_PRICE = st.sidebar.slider(
     "Maximum Ticket Price",
-    0,
-    500,
-    150
+    min_value=0,
+    max_value=500,
+    value=150
 )
 
 artist_df = artist_df.head(TOP_N)
@@ -163,7 +168,9 @@ def search_ticketmaster(artist_name):
                 if venues:
                     venue = venues[0].get("name")
 
-            min_price = "N/A"
+            # PRICE HANDLING
+
+            min_price = None
 
             if "priceRanges" in event:
 
@@ -174,10 +181,15 @@ def search_ticketmaster(artist_name):
                     possible_price = ranges[0].get("min")
 
                     if possible_price is not None:
-                        min_price = round(
-                            float(possible_price),
-                            2
-                        )
+
+                        try:
+                            min_price = round(
+                                float(possible_price),
+                                2
+                            )
+
+                        except:
+                            min_price = None
 
             events.append({
                 "artist": artist_name,
@@ -229,6 +241,10 @@ if st.button("🔎 Find Denver Concerts"):
 
         st.stop()
 
+    # =================================================
+    # DATAFRAME
+    # =================================================
+
     events_df = pd.DataFrame(all_events)
 
     # REMOVE DUPLICATES
@@ -237,11 +253,22 @@ if st.button("🔎 Find Denver Concerts"):
         subset=["artist", "event", "date"]
     )
 
-    # DEAL RATING
+    # =================================================
+    # PRICE CLEANUP
+    # =================================================
+
+    events_df["numeric_price"] = pd.to_numeric(
+        events_df["price"],
+        errors="coerce"
+    )
+
+    # =================================================
+    # DEAL RATINGS
+    # =================================================
 
     def deal_rating(price):
 
-        if price == "N/A":
+        if pd.isna(price):
             return "Unknown"
 
         if price < 40:
@@ -255,31 +282,36 @@ if st.button("🔎 Find Denver Concerts"):
 
         return "🔴 Expensive"
 
-    events_df["deal"] = events_df["price"].apply(
-        deal_rating
-    )
+    events_df["deal"] = events_df[
+        "numeric_price"
+    ].apply(deal_rating)
 
+    # =================================================
     # FILTERS
+    # =================================================
 
-    events_df["numeric_price"] = pd.to_numeric(
-    events_df["price"],
-    errors="coerce"
-)
+    events_df = events_df[
+        (
+            events_df["numeric_price"].isna()
+        ) |
+        (
+            events_df["numeric_price"] <= MAX_PRICE
+        )
+    ]
 
-events_df = events_df[
-    (events_df["numeric_price"].isna()) |
-    (events_df["numeric_price"] <= MAX_PRICE)
-]
-
+    # =================================================
     # SORT
+    # =================================================
 
     events_df = events_df.sort_values(
-    by="numeric_price",
+        by="numeric_price",
         ascending=True,
         na_position="last"
     )
 
+    # =================================================
     # METRICS
+    # =================================================
 
     col1, col2, col3 = st.columns(3)
 
@@ -307,23 +339,43 @@ events_df = events_df[
         events_df["artist"].nunique()
     )
 
-    # TABLE
+    # =================================================
+    # DISPLAY TABLE
+    # =================================================
 
     st.subheader("🎫 Upcoming Concerts")
 
+    display_df = events_df.copy()
+
+    display_df["price"] = display_df[
+        "numeric_price"
+    ].fillna("N/A")
+
     st.dataframe(
-        events_df,
+        display_df[
+            [
+                "artist",
+                "event",
+                "venue",
+                "date",
+                "price",
+                "deal",
+                "url"
+            ]
+        ],
         use_container_width=True,
         height=700
     )
 
+    # =================================================
     # CHART
+    # =================================================
 
     st.subheader("📊 Cheapest Upcoming Concerts")
 
     chart_df = events_df.dropna(
-    subset=["numeric_price"]
-)
+        subset=["numeric_price"]
+    )
 
     if len(chart_df) > 0:
 
@@ -342,7 +394,9 @@ events_df = events_df[
             use_container_width=True
         )
 
-    # DEALS
+    # =================================================
+    # BEST DEALS
+    # =================================================
 
     st.subheader("🔥 Best Deals")
 
@@ -353,16 +407,28 @@ events_df = events_df[
         ])
     ]
 
-    for row in deals.head(15).itertuples():
+    if len(deals) == 0:
 
-        st.markdown(f'''
+        st.info("No great deals found right now.")
+
+    else:
+
+        for row in deals.head(15).itertuples():
+
+            price_display = (
+                f"${row.numeric_price}"
+                if pd.notna(row.numeric_price)
+                else "N/A"
+            )
+
+            st.markdown(f'''
 ### {row.artist}
 
 **Venue:** {row.venue}
 
 **Date:** {row.date}
 
-**Lowest Ticket:** {row.price}
+**Lowest Ticket:** {price_display}
 
 **Rating:** {row.deal}
 
@@ -381,3 +447,4 @@ st.sidebar.dataframe(
     artist_df.head(25),
     use_container_width=True
 )
+```
