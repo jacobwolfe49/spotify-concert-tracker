@@ -261,15 +261,20 @@ if st.button("🔎 Find Denver Concerts"):
 
     # FILTERS
 
-    events_df = events_df[
-        (events_df["price"] == "N/A") |
-        (events_df["price"] <= MAX_PRICE)
-    ]
+    events_df["numeric_price"] = pd.to_numeric(
+    events_df["price"],
+    errors="coerce"
+)
+
+events_df = events_df[
+    (events_df["numeric_price"].isna()) |
+    (events_df["numeric_price"] <= MAX_PRICE)
+]
 
     # SORT
 
     events_df = events_df.sort_values(
-        by="price",
+    by="numeric_price",
         ascending=True,
         na_position="last"
     )
@@ -316,9 +321,9 @@ if st.button("🔎 Find Denver Concerts"):
 
     st.subheader("📊 Cheapest Upcoming Concerts")
 
-    chart_df = events_df[
-        events_df["price"] != "N/A"
-    ]
+    chart_df = events_df.dropna(
+    subset=["numeric_price"]
+)
 
     if len(chart_df) > 0:
 
@@ -327,7 +332,7 @@ if st.button("🔎 Find Denver Concerts"):
         fig = px.bar(
             chart_df,
             x="artist",
-            y="price",
+            y="numeric_price",
             hover_data=["venue", "date"],
             title="Lowest Ticket Prices"
         )
