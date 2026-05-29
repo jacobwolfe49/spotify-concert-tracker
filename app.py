@@ -145,12 +145,16 @@ def search_ticketmaster(artist_name):
                 if venues:
                     venue = venues[0].get("name")
 
-            min_price = None
+           min_price = "N/A"
 
-            if "priceRanges" in event:
-                ranges = event["priceRanges"]
-                if ranges:
-                    min_price = ranges[0].get("min")
+if "priceRanges" in event:
+    ranges = event["priceRanges"]
+
+    if ranges:
+        possible_price = ranges[0].get("min")
+
+        if possible_price is not None:
+            min_price = round(float(possible_price), 2)
 
             events.append({
                 "artist": artist_name,
@@ -203,8 +207,8 @@ if st.button("🔎 Find Denver Concerts"):
 
     def deal_rating(price):
 
-        if price is None:
-            return "Unknown"
+       if price == "N/A":
+    return "Unknown"
 
         if price < 40:
             return "🔥 Amazing"
@@ -221,9 +225,8 @@ if st.button("🔎 Find Denver Concerts"):
 
     # FILTERS
 
-    events_df = events_df[
-        (events_df["price"].isna()) |
-        (events_df["price"] <= MAX_PRICE)
+    (events_df["price"] == "N/A") |
+(events_df["price"] <= MAX_PRICE)
     ]
 
     # SORT
