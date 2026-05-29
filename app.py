@@ -28,7 +28,7 @@ st.title("🎵 Denver Concert Deal Tracker")
 st.caption("Concert discovery powered by your Spotify history")
 
 # =====================================================
-# LOAD CSV
+# FILE UPLOAD
 # =====================================================
 
 uploaded_file = st.file_uploader(
@@ -43,7 +43,7 @@ if uploaded_file is None:
 songs_df = pd.read_csv(uploaded_file)
 
 # =====================================================
-# DETECT ARTIST COLUMN
+# FIND ARTIST COLUMN
 # =====================================================
 
 possible_columns = [
@@ -71,8 +71,15 @@ if artist_column is None:
 all_artists = []
 
 for value in songs_df[artist_column].dropna():
+
     artists = str(value).replace(",", ";").split(";")
-    artists = [a.strip() for a in artists if a.strip()]
+
+    artists = [
+        a.strip()
+        for a in artists
+        if a.strip()
+    ]
+
     all_artists.extend(artists)
 
 artist_counts = Counter(all_artists)
@@ -128,7 +135,13 @@ def search_ticketmaster(artist_name):
     }
 
     try:
-        response = requests.get(url, params=params, timeout=15)
+
+        response = requests.get(
+            url,
+            params=params,
+            timeout=15
+        )
+
         data = response.json()
 
         events = []
@@ -141,7 +154,11 @@ def search_ticketmaster(artist_name):
             venue = "Unknown"
 
             if "_embedded" in event:
-                venues = event["_embedded"].get("venues", [])
+
+                venues = event["_embedded"].get(
+                    "venues",
+                    []
+                )
 
                 if venues:
                     venue = venues[0].get("name")
@@ -157,13 +174,18 @@ def search_ticketmaster(artist_name):
                     possible_price = ranges[0].get("min")
 
                     if possible_price is not None:
-                        min_price = round(float(possible_price), 2)
+                        min_price = round(
+                            float(possible_price),
+                            2
+                        )
 
             events.append({
                 "artist": artist_name,
                 "event": event.get("name"),
                 "venue": venue,
-                "date": event.get("dates", {}).get("start", {}).get("localDate"),
+                "date": event.get("dates", {})
+                    .get("start", {})
+                    .get("localDate"),
                 "price": min_price,
                 "url": event.get("url"),
                 "source": "Ticketmaster"
@@ -172,7 +194,9 @@ def search_ticketmaster(artist_name):
         return events
 
     except Exception as e:
+
         print(e)
+
         return []
 
 # =====================================================
@@ -185,7 +209,9 @@ if st.button("🔎 Find Denver Concerts"):
 
     all_events = []
 
-    for idx, row in enumerate(artist_df.itertuples()):
+    for idx, row in enumerate(
+        artist_df.itertuples()
+    ):
 
         artist = row.artist
 
@@ -193,10 +219,14 @@ if st.button("🔎 Find Denver Concerts"):
 
         all_events.extend(tm_results)
 
-        progress.progress((idx + 1) / len(artist_df))
+        progress.progress(
+            (idx + 1) / len(artist_df)
+        )
 
     if len(all_events) == 0:
+
         st.warning("No concerts found")
+
         st.stop()
 
     events_df = pd.DataFrame(all_events)
@@ -211,8 +241,8 @@ if st.button("🔎 Find Denver Concerts"):
 
     def deal_rating(price):
 
-       if price == "N/A":
-    return "Unknown"
+        if price == "N/A":
+            return "Unknown"
 
         if price < 40:
             return "🔥 Amazing"
@@ -225,12 +255,15 @@ if st.button("🔎 Find Denver Concerts"):
 
         return "🔴 Expensive"
 
-    events_df["deal"] = events_df["price"].apply(deal_rating)
+    events_df["deal"] = events_df["price"].apply(
+        deal_rating
+    )
 
     # FILTERS
 
-    (events_df["price"] == "N/A") |
-(events_df["price"] <= MAX_PRICE)
+    events_df = events_df[
+        (events_df["price"] == "N/A") |
+        (events_df["price"] <= MAX_PRICE)
     ]
 
     # SORT
@@ -245,7 +278,10 @@ if st.button("🔎 Find Denver Concerts"):
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric("Concerts Found", len(events_df))
+    col1.metric(
+        "Concerts Found",
+        len(events_df)
+    )
 
     cheap_count = len(
         events_df[
@@ -256,7 +292,10 @@ if st.button("🔎 Find Denver Concerts"):
         ]
     )
 
-    col2.metric("Good Deals", cheap_count)
+    col2.metric(
+        "Good Deals",
+        cheap_count
+    )
 
     col3.metric(
         "Artists Touring",
@@ -277,7 +316,9 @@ if st.button("🔎 Find Denver Concerts"):
 
     st.subheader("📊 Cheapest Upcoming Concerts")
 
-    chart_df = events_df.dropna(subset=["price"])
+    chart_df = events_df[
+        events_df["price"] != "N/A"
+    ]
 
     if len(chart_df) > 0:
 
@@ -291,9 +332,12 @@ if st.button("🔎 Find Denver Concerts"):
             title="Lowest Ticket Prices"
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
 
-    # DEALS SECTION
+    # DEALS
 
     st.subheader("🔥 Best Deals")
 
@@ -306,21 +350,21 @@ if st.button("🔎 Find Denver Concerts"):
 
     for row in deals.head(15).itertuples():
 
-        st.markdown(f"""
-        ### {row.artist}
+        st.markdown(f'''
+### {row.artist}
 
-        **Venue:** {row.venue}
+**Venue:** {row.venue}
 
-        **Date:** {row.date}
+**Date:** {row.date}
 
-        **Lowest Ticket:** ${row.price}
+**Lowest Ticket:** {row.price}
 
-        **Rating:** {row.deal}
+**Rating:** {row.deal}
 
-        [Buy Tickets]({row.url})
+[Buy Tickets]({row.url})
 
-        ---
-        """)
+---
+''')
 
 # =====================================================
 # TOP ARTISTS
