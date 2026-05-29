@@ -142,15 +142,18 @@ def search_ticketmaster(artist_name):
 
             if "_embedded" in event:
                 venues = event["_embedded"].get("venues", [])
+
                 if venues:
                     venue = venues[0].get("name")
 
-min_price = "N/A"
+            min_price = "N/A"
 
             if "priceRanges" in event:
+
                 ranges = event["priceRanges"]
 
                 if ranges:
+
                     possible_price = ranges[0].get("min")
 
                     if possible_price is not None:
@@ -168,7 +171,8 @@ min_price = "N/A"
 
         return events
 
-    except Exception:
+    except Exception as e:
+        print(e)
         return []
 
 # =====================================================
