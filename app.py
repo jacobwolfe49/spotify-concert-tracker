@@ -145,16 +145,16 @@ def search_ticketmaster(artist_name):
                 if venues:
                     venue = venues[0].get("name")
 
-           min_price = "N/A"
+min_price = "N/A"
 
-if "priceRanges" in event:
-    ranges = event["priceRanges"]
+            if "priceRanges" in event:
+                ranges = event["priceRanges"]
 
-    if ranges:
-        possible_price = ranges[0].get("min")
+                if ranges:
+                    possible_price = ranges[0].get("min")
 
-        if possible_price is not None:
-            min_price = round(float(possible_price), 2)
+                    if possible_price is not None:
+                        min_price = round(float(possible_price), 2)
 
             events.append({
                 "artist": artist_name,
