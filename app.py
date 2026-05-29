@@ -155,6 +155,7 @@ def search_ticketmaster(artist_name):
         tm_events = embedded.get("events", [])
 
         for event in tm_events:
+                        st.write(event)
 
             venue = "Unknown"
 
@@ -179,6 +180,9 @@ def search_ticketmaster(artist_name):
                 if ranges:
 
                     possible_price = ranges[0].get("min")
+
+if possible_price is None:
+    possible_price = ranges[0].get("max")
 
                     if possible_price is not None:
 
